@@ -21,7 +21,9 @@ async function getTimeline(req, res) {
 
 async function getRunningModuleDetails(req, res) {
   try {
-    const { groupName, runningId } = req.params;
+    const runningId = +req.params.runningId;
+    const { groupName } = req.params;
+
     const con = await getConnection(req, res);
 
     const [runningModule] = await db.getRunningModuleById(con, runningId);
