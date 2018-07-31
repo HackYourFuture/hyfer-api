@@ -51,6 +51,7 @@ async function getActiveGroups(con) {
 
 function updateGroup(con, updates, id) {
   invalidateCaches('groups');
+  invalidateCaches('timeline');
   return execQuery(con, UPDATE_GROUP_QUERY, [updates, id]);
 }
 
@@ -84,6 +85,7 @@ function makeValueList(runningModules) {
 
 async function addGroup(con, group) {
   invalidateCaches('groups');
+  invalidateCaches('timeline');
   const { group_name, starting_date, archived } = group;
   const data = {
     group_name,
