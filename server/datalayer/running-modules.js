@@ -36,35 +36,30 @@ const DELETE_RUNNING_MODULE =
 const INSERT_RUNNING_MODULE =
   'INSERT INTO running_modules (module_id, group_id, duration, position, notes) VALUES(?,?,?,?,?)';
 
-let timelineCache = null;
 let runningCache = {};
 
 onInvalidateCaches('timeline', () => {
-  timelineCache = null;
   runningCache = {};
 });
 
 const resequenceModules = mods => mods.map((mod, index) => ({ ...mod, position: index }));
 
 async function getTimeline(con, groupNames) {
-  if (!timelineCache) {
-    let names = groupNames;
-    if (!groupNames) {
-      const active = await groups.getActiveGroups(con);
-      names = active.map(group => group.group_name);
-    }
-    const rows = await execQuery(con, GET_TIME_LINE_QUERY, [names]);
-    const grouped = _.groupBy(rows, row => row.group_name);
-    timelineCache = Object.keys(grouped)
-      .reduce((acc, groupName) => {
-        let mods = grouped[groupName];
-        const { id: group_id, starting_date } = mods[0];
-        mods = mods.map(m => _.omit(m, 'starting_date'));
-        acc[groupName] = { group_id, starting_date, modules: mods };
-        return acc;
-      }, {});
+  let names = groupNames;
+  if (!groupNames) {
+    const active = await groups.getActiveGroups(con);
+    names = active.map(group => group.group_name);
   }
-  return timelineCache;
+  const rows = await execQuery(con, GET_TIME_LINE_QUERY, [names]);
+  const grouped = _.groupBy(rows, row => row.group_name);
+  return Object.keys(grouped)
+    .reduce((acc, groupName) => {
+      let mods = grouped[groupName];
+      const { id: group_id, starting_date } = mods[0];
+      mods = mods.map(m => _.omit(m, 'starting_date'));
+      acc[groupName] = { group_id, starting_date, modules: mods };
+      return acc;
+    }, {});
 }
 
 async function getRunningModules(con, groupId) {
