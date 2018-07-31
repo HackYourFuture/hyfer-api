@@ -3,6 +3,8 @@ const {
   beginTransaction,
   commit,
   rollback,
+  onInvalidateCaches,
+  invalidateCaches,
 } = require('./database');
 const { getCurriculumModules } = require('./modules');
 
@@ -18,27 +20,37 @@ const GET_GROUPS_BY_GROUP_NAME = `
 
 const ADD_GROUP_QUERY = 'INSERT INTO `groups` SET ?';
 const UPDATE_GROUP_QUERY = 'UPDATE `groups` SET ? WHERE id=?';
-
 const ADD_RUNNING_MODULES_QUERY = 'INSERT INTO running_modules ( module_id, group_id, duration, position) VALUES';
+
+let cache = null;
+
+onInvalidateCaches('groups', () => {
+  cache = null;
+});
 
 function getGroupsByGroupName(con, groupName) {
   return execQuery(con, GET_GROUPS_BY_GROUP_NAME, groupName);
 }
-function getGroups(con) {
-  return execQuery(con, 'SELECT * FROM `groups` ORDER BY starting_date');
+
+async function getGroups(con) {
+  if (cache == null) {
+    cache = await execQuery(con, 'SELECT * FROM `groups` ORDER BY starting_date');
+  }
+  return cache;
 }
 
-function getGroupById(con, groupId) {
-  return execQuery(con, 'SELECT * FROM `groups` WHERE id=?', [groupId]);
+async function getGroupById(con, groupId) {
+  const groups = await getGroups(con);
+  return groups.filter(group => group.id === groupId);
 }
 
-function getActiveGroups(con) {
-  return execQuery(con, 'SELECT group_name FROM `groups` where archived = 0');
+async function getActiveGroups(con) {
+  const groups = await getGroups(con);
+  return groups.filter(group => group.archived === 0);
 }
 
 function updateGroup(con, updates, id) {
-  console.log('updates', updates);
-
+  invalidateCaches('groups');
   return execQuery(con, UPDATE_GROUP_QUERY, [updates, id]);
 }
 
@@ -71,6 +83,7 @@ function makeValueList(runningModules) {
 
 
 async function addGroup(con, group) {
+  invalidateCaches('groups');
   const { group_name, starting_date, archived } = group;
   const data = {
     group_name,

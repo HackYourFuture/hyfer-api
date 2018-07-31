@@ -34,7 +34,7 @@ async function getRunningModuleDetails(req, res) {
       return;
     }
 
-    const [module] = await dbModules.getModule(con, runningModule.module_id);
+    const [module] = await dbModules.getModuleById(con, runningModule.module_id);
     if (!module) {
       const error = `Module ${runningModule.module_id} not found.`;
       logger.error(error);
@@ -135,7 +135,7 @@ async function addTeacher(req, res) {
   try {
     const { runningId, userId } = req.params;
     const con = await getConnection(req, res);
-    await db.addTeacher(con, runningId, +userId);
+    await dbUsers.addTeacher(con, runningId, +userId);
     const teachers = await dbUsers.getTeachersByRunningModule(con, +runningId);
     res.json(teachers);
     logger.info('Added teacher', { ...req.params, requester: req.user.username });
@@ -148,7 +148,7 @@ async function deleteTeacher(req, res) {
   try {
     const { runningId, userId } = req.params;
     const con = await getConnection(req, res);
-    await db.deleteTeacher(con, runningId, +userId);
+    await dbUsers.deleteTeacher(con, runningId, +userId);
     const teachers = await dbUsers.getTeachersByRunningModule(con, +runningId);
     res.json(teachers);
     logger.info('Deleted teacher', { ...req.params, requester: req.user.username });

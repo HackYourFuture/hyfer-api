@@ -4,6 +4,8 @@ const {
   beginTransaction,
   commit,
   rollback,
+  onInvalidateCaches,
+  invalidateCaches,
 } = require('./database');
 
 const GET_MODULE_QUERY = `SELECT *,
@@ -20,14 +22,23 @@ const ADD_MODULE_QUERY = 'INSERT INTO modules SET ?';
 const UPDATE_MODULE_QUERY = 'UPDATE modules SET ? WHERE id = ?';
 const DELETE_MODULE_QUERY = 'DELETE FROM modules WHERE id = ?';
 
-function getModule(con, id) {
-  const sql = `${GET_MODULE_QUERY} WHERE id=?`;
-  return execQuery(con, sql, [id]);
+let cache = null;
+
+onInvalidateCaches('modules', () => {
+  cache = null;
+});
+
+async function getModules(con) {
+  if (cache == null) {
+    const sql = `${GET_MODULE_QUERY} ORDER BY sort_order, module_name`;
+    cache = await execQuery(con, sql);
+  }
+  return cache;
 }
 
-function getModules(con) {
-  const sql = `${GET_MODULE_QUERY} ORDER BY sort_order, module_name`;
-  return execQuery(con, sql);
+async function getModuleById(con, id) {
+  const modules = await getModules(con);
+  return modules.filter(module => module.id === id);
 }
 
 function getHomeworkModules(con) {
@@ -46,16 +57,19 @@ function getOptionalModules(con) {
 }
 
 function addModule(con, module) {
+  invalidateCaches('modules');
   const obj = _.omit(module, ['id', 'added_on', 'ref_count']);
   return execQuery(con, ADD_MODULE_QUERY, obj);
 }
 
 function updateModule(con, module, id) {
+  invalidateCaches('modules');
   const obj = _.omit(module, ['id', 'added_on', 'ref_count']);
   return execQuery(con, UPDATE_MODULE_QUERY, [obj, id]);
 }
 
 function deleteModule(con, id) {
+  invalidateCaches('modules');
   return execQuery(con, DELETE_MODULE_QUERY, [id]);
 }
 
@@ -75,7 +89,7 @@ async function updateModules(con, batchUpdate) {
 }
 
 module.exports = {
-  getModule,
+  getModuleById,
   getModules,
   getHomeworkModules,
   getCurriculumModules,

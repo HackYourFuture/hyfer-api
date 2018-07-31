@@ -1,5 +1,9 @@
 const util = require('util');
+const EventEmitter = require('events');
 const log = require('../util/logger');
+
+class MyEmitter extends EventEmitter { }
+const myEmitter = new MyEmitter();
 
 function execQuery(con, sql, args = []) {
   if (process.env.DB_DEBUG === '1') {
@@ -54,10 +58,19 @@ function rollback(con) {
   });
 }
 
+function invalidateCaches(cacheName) {
+  myEmitter.emit(cacheName);
+}
+
+function onInvalidateCaches(cacheName, cb) {
+  myEmitter.on(cacheName, cb);
+}
 
 module.exports = {
   execQuery,
   beginTransaction,
   commit,
   rollback,
+  invalidateCaches,
+  onInvalidateCaches,
 };
