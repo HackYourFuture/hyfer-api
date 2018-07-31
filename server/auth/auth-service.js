@@ -100,7 +100,7 @@ function setTokenCookie(req, res) {
   }
   const token = signToken(req.user.username);
   res.cookie('token', JSON.stringify(token));
-  res.redirect(`${process.env.CLIENT_URL}/timeline`);
+  res.redirect(`${process.env.CLIENT_URL}/timeline?token=${token}`);
 }
 
 const router = express.Router();
