@@ -5,6 +5,8 @@ const {
   beginTransaction,
   commit,
   rollback,
+  onInvalidateCaches,
+  invalidateCaches,
 } = require('./database');
 const modules = require('./modules');
 const groups = require('./groups');
@@ -34,24 +36,48 @@ const DELETE_RUNNING_MODULE =
 const INSERT_RUNNING_MODULE =
   'INSERT INTO running_modules (module_id, group_id, duration, position, notes) VALUES(?,?,?,?,?)';
 
+let timelineCache = null;
+let runningCache = {};
+
+onInvalidateCaches('timeline', () => {
+  timelineCache = null;
+  runningCache = {};
+});
+
 const resequenceModules = mods => mods.map((mod, index) => ({ ...mod, position: index }));
 
 async function getTimeline(con, groupNames) {
-  let names = groupNames;
-  if (!groupNames) {
-    const active = await groups.getActiveGroups(con);
-    names = active.map(group => group.group_name);
+  if (!timelineCache) {
+    let names = groupNames;
+    if (!groupNames) {
+      const active = await groups.getActiveGroups(con);
+      names = active.map(group => group.group_name);
+    }
+    const rows = await execQuery(con, GET_TIME_LINE_QUERY, [names]);
+    const grouped = _.groupBy(rows, row => row.group_name);
+    timelineCache = Object.keys(grouped)
+      .reduce((acc, groupName) => {
+        let mods = grouped[groupName];
+        const { id: group_id, starting_date } = mods[0];
+        mods = mods.map(m => _.omit(m, 'starting_date'));
+        acc[groupName] = { group_id, starting_date, modules: mods };
+        return acc;
+      }, {});
   }
-  const rows = await execQuery(con, GET_TIME_LINE_QUERY, [names]);
-  const grouped = _.groupBy(rows, row => row.group_name);
-  return Object.keys(grouped)
-    .reduce((acc, groupName) => {
-      let mods = grouped[groupName];
-      const { id: group_id, starting_date } = mods[0];
-      mods = mods.map(m => _.omit(m, 'starting_date'));
-      acc[groupName] = { group_id, starting_date, modules: mods };
-      return acc;
-    }, {});
+  return timelineCache;
+}
+
+async function getRunningModules(con, groupId) {
+  if (!runningCache[groupId]) {
+    const sql = `${GET_RUNNING_MODULES_QUERY} WHERE group_id=? ORDER BY position`;
+    runningCache[groupId] = await execQuery(con, sql, [groupId]);
+  }
+  return runningCache[groupId];
+}
+
+async function getRunningModule(con, groupId, runningId) {
+  const runningModules = await getRunningModules(con, groupId);
+  return runningModules.filter(module => module.id === runningId);
 }
 
 async function getRunningModuleById(con, runningId) {
@@ -59,12 +85,8 @@ async function getRunningModuleById(con, runningId) {
   return execQuery(con, sql, [runningId]);
 }
 
-function getRunningModules(con, groupId) {
-  const sql = `${GET_RUNNING_MODULES_QUERY} WHERE group_id=? ORDER BY position`;
-  return execQuery(con, sql, [groupId]);
-}
-
 async function bulkUpdateRunningsModules(con, existingMods, updatedMods, groupId) {
+  invalidateCaches('timeline');
   const inserts = updatedMods.filter(mod => mod.id === undefined);
   const deletes = existingMods.filter(mod1 => !updatedMods.find(mod2 => mod1.id === mod2.id));
   const updates = updatedMods.filter((mod) => {
@@ -203,12 +225,13 @@ async function updateNotes(con, runningId, notes) {
 }
 
 module.exports = {
-  getTimeline,
+  addRunningModule,
+  deleteRunningModule,
+  getRunningModule,
   getRunningModuleById,
   getRunningModules,
-  addRunningModule,
-  updateRunningModule,
-  deleteRunningModule,
+  getTimeline,
   splitRunningModule,
   updateNotes,
+  updateRunningModule,
 };

@@ -21,14 +21,15 @@ async function getTimeline(req, res) {
 
 async function getRunningModuleDetails(req, res) {
   try {
-    const runningId = +req.params.runningId;
+    const { groupName, runningId } = req.params;
     const con = await getConnection(req, res);
 
     const [runningModule] = await db.getRunningModuleById(con, runningId);
 
-    const [group] = await dbGroups.getGroupById(con, runningModule.group_id);
+    const groups = await dbGroups.getGroups(con);
+    const group = groups.find(g => g.group_name === groupName);
     if (!group) {
-      const error = `Group ${runningModule.group_id} not found.`;
+      const error = `Group ${groupName} not found.`;
       logger.error(error);
       res.status(404).json({ error });
       return;
@@ -160,7 +161,7 @@ async function deleteTeacher(req, res) {
 const router = express.Router();
 router
   .get('/timeline', getTimeline)
-  .get('/details/:runningId', hasRole('teacher|student'), getRunningModuleDetails)
+  .get('/details/:groupName/:runningId', hasRole('teacher|student'), getRunningModuleDetails)
   .patch('/update/:groupId/:position', hasRole('teacher'), updateRunningModule)
   .patch('/split/:groupId/:position', hasRole('teacher'), splitRunningModule)
   .patch('/add/:moduleId/:groupId/:position', hasRole('teacher'), addRunningModule)
