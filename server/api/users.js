@@ -89,7 +89,7 @@ router
   .get('/teachers/:id', hasRole('teacher|student'), getTeachersByRunningModule)
   .get('/event/:eventName', hasRole('teacher'), getLastEvent)
   .get('/all', hasRole('teacher'), getUsers)
-  .get('/teachers', hasRole('teacher'), getTeachers)
+  .get('/teachers', hasRole('teacher|student'), getTeachers)
   .get('/group/:groupId', hasRole('teacher|student'), getRunningUsersByGroup)
   .get('/:id', hasRole('teacher|student'), getUserById)
   .patch('/:id', hasRole('teacher|student'), updateUser);
