@@ -8,16 +8,6 @@ const {
 } = require('./database');
 const { getCurriculumModules } = require('./modules');
 
-const GET_GROUPS_BY_GROUP_NAME = `
-  SELECT groups.starting_date, groups.group_name,
-  modules.module_name,
-  running_modules.duration,running_modules.id
-  FROM groups
-  INNER JOIN running_modules ON running_modules.group_id=groups.id
-  INNER JOIN modules ON running_modules.module_id=modules.id
-  WHERE groups.group_name=?
-  ORDER BY running_modules.position`;
-
 const ADD_GROUP_QUERY = 'INSERT INTO `groups` SET ?';
 const UPDATE_GROUP_QUERY = 'UPDATE `groups` SET ? WHERE id=?';
 const ADD_RUNNING_MODULES_QUERY = 'INSERT INTO running_modules ( module_id, group_id, duration, position) VALUES';
@@ -27,10 +17,6 @@ let cache = null;
 onInvalidateCaches('groups', () => {
   cache = null;
 });
-
-function getGroupsByGroupName(con, groupName) {
-  return execQuery(con, GET_GROUPS_BY_GROUP_NAME, groupName);
-}
 
 async function getGroups(con) {
   if (cache == null) {
@@ -114,5 +100,4 @@ module.exports = {
   addGroup,
   updateGroup,
   getActiveGroups,
-  getGroupsByGroupName,
 };

@@ -1,11 +1,15 @@
 const express = require('express');
+const { param } = require('express-validator/check');
 const db = require('../datalayer/history');
-const handleError = require('./error')('History');
+const { handleError, hasValidationErrors } = require('./error');
 const { hasRole } = require('../auth/auth-service');
 const { getConnection } = require('./connection');
 const logger = require('../util/logger');
 
 async function save(req, res) {
+  if (hasValidationErrors(req, res)) {
+    return;
+  }
   try {
     const { runningId, userId, weekNum } = req.params;
     const { attendance, homework } = req.body;
@@ -33,6 +37,15 @@ async function save(req, res) {
 
 const router = express.Router();
 router
-  .post('/:runningId/:userId/:weekNum', hasRole('teacher'), save);
+  .post(
+    '/:runningId/:userId/:weekNum',
+    hasRole('teacher'),
+    [
+      param('runningId').isInt().toInt(),
+      param('userId').isInt().toInt(),
+      param('weekNum').isInt().toInt(),
+    ],
+    save
+  );
 
 module.exports = router;

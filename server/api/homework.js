@@ -1,6 +1,6 @@
 const express = require('express');
 const db = require('../datalayer/homework');
-const handleError = require('./error')('Homework');
+const { handleError } = require('./error');
 const { hasRole } = require('../auth/auth-service');
 const { getConnection } = require('./connection');
 

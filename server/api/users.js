@@ -1,10 +1,11 @@
 
 const express = require('express');
 const _ = require('lodash');
+const { param } = require('express-validator/check');
 const db = require('../datalayer/users');
 const { getConnection } = require('./connection');
 const { hasRole, isAuthenticated } = require('../auth/auth-service');
-const handleError = require('./error')('Users');
+const { handleError, hasValidationErrors } = require('./error');
 const logger = require('../util/logger');
 
 async function getCurrentUser(req, res) {
@@ -50,32 +51,26 @@ async function getTeachers(req, res) {
   }
 }
 
-function getUserById(req, res) {
-  getConnection(req, res)
-    .then(con => db.getUserById(con, +req.params.id))
-    .then(result => res.json(result[0]))
-    .catch(err => handleError(req, res, err));
-}
-
-function getTeachersByRunningModule(req, res) {
-  getConnection(req, res)
-    .then(con => db.getTeachersByRunningModule(con, +req.params.id))
-    .then(result => res.json(result))
-    .catch(err => handleError(req, res, err));
-}
-
-
-function getRunningUsersByGroup(req, res) {
-  getConnection(req, res)
-    .then(con => db.getRunningUsersByGroup(con, +req.params.groupId))
-    .then(result => res.json(result))
-    .catch(err => handleError(req, res, err));
+async function getUserById(req, res) {
+  if (hasValidationErrors(req, res)) {
+    return;
+  }
+  try {
+    const con = await getConnection(req, res);
+    const result = await db.getUserById(con, req.params.id);
+    res.json(result[0]);
+  } catch (err) {
+    handleError(req, res, err);
+  }
 }
 
 async function updateUser(req, res) {
+  if (hasValidationErrors(req, res)) {
+    return;
+  }
   try {
     const con = await getConnection(req, res);
-    const [result] = await db.updateUser(con, +req.params.id, req.body);
+    const [result] = await db.updateUser(con, req.params.id, req.body);
     res.json(result);
     logger.info('Update user', { ...req.params, ...req.body, requester: req.user.username });
   } catch (err) {
@@ -86,12 +81,10 @@ async function updateUser(req, res) {
 const router = express.Router();
 router
   .get('/', isAuthenticated(), getCurrentUser)
-  .get('/teachers/:id', hasRole('teacher|student'), getTeachersByRunningModule)
   .get('/event/:eventName', hasRole('teacher'), getLastEvent)
   .get('/all', hasRole('teacher|student'), getUsers)
   .get('/teachers', hasRole('teacher|student'), getTeachers)
-  .get('/group/:groupId', hasRole('teacher|student'), getRunningUsersByGroup)
-  .get('/:id', hasRole('teacher|student'), getUserById)
-  .patch('/:id', hasRole('teacher|student'), updateUser);
+  .get('/:id', hasRole('teacher|student'), [param('id').isInt().toInt()], getUserById)
+  .patch('/:id', hasRole('teacher|student'), [param('id').isInt().toInt()], updateUser);
 
 module.exports = router;

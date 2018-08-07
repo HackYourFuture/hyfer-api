@@ -3,7 +3,7 @@ const _ = require('lodash');
 const db = require('../datalayer/modules');
 const { getConnection } = require('./connection');
 const { hasRole } = require('../auth/auth-service');
-const handleError = require('./error')('Modules');
+const { handleError } = require('./error');
 const logger = require('../util/logger.js');
 
 async function getModules(req, res) {
