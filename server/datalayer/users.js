@@ -62,17 +62,19 @@ async function getTeachersByRunningModule(con, runningId) {
 
 async function addUser(con, user) {
   invalidateCaches('users');
+  invalidateCaches('teachers');
   const { insertId } = await execQuery(
     con,
     'INSERT INTO users (username, full_name, email, role) VALUES(?,?,?,?)',
-    [user.username, user.full_name, user.email, user.role]
+    [user.username, user.full_name || user.username, user.email, user.role]
   );
   return insertId;
 }
 
 function bulkInsertUsers(con, users) {
   invalidateCaches('users');
-  const args = users.map(user => [user.username, user.full_name, user.email, user.role]);
+  invalidateCaches('teachers');
+  const args = users.map(user => [user.username, user.full_name || user.username, user.email, user.role]);
   return execQuery(
     con,
     'INSERT INTO users (username, full_name, email, role) VALUES ?',
@@ -82,22 +84,25 @@ function bulkInsertUsers(con, users) {
 
 function bulkUpdateUsers(con, users) {
   invalidateCaches('users');
+  invalidateCaches('teachers');
   const promises = users.map(user => execQuery(
     con,
     'UPDATE users SET full_name=?, email=?, role=? WHERE username=?',
-    [user.full_name, user.email, user.role, user.username]
+    [user.full_name || user.username, user.email, user.role, user.username]
   ));
   return Promise.all(promises);
 }
 
 async function bulkUpdateMemberships(con, groupAndUserIds) {
   invalidateCaches('users');
+  invalidateCaches('teachers');
   await execQuery(con, 'DELETE FROM group_students');
   return execQuery(con, 'INSERT INTO group_students (group_id, user_id) VALUES ?', [groupAndUserIds]);
 }
 
 async function updateUser(con, id, data) {
   invalidateCaches('users');
+  invalidateCaches('teachers');
   await execQuery(con, UPDATE_USER, [data, id]);
   return getUserById(con, id);
 }
