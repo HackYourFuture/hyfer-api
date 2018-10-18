@@ -6,7 +6,7 @@ This website was developed as a project in the HackYourFuture curriculum.
 
 **Originally developed by Class 5 using AngularJS (frontend) and Node.js (backend):**
 
-- Hasan Shahoud @hasanshahoud
+- Hasan Shahoud @hasan-sh
 - Jack Sacali @aboRoma
 
 _Mentors:_ Jim Cramer, Michael Trouw, Pablo Celentano and Unmesh Joshi.
@@ -14,7 +14,7 @@ _Mentors:_ Jim Cramer, Michael Trouw, Pablo Celentano and Unmesh Joshi.
 **Further enhanced by Class 6:**
 
 - Malek Kanaan @malekkn
-- Hasan Shahoud @hasanshahoud (as alumnus from class 5)
+- Hasan Shahoud @hasan-sh (as alumnus from class 5)
 
 _Mentors:_ Jim Cramer, Borislav Nikolov
 
